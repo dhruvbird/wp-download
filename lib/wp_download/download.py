@@ -196,7 +196,7 @@ class WPDownloader(object):
                 continue
 
             try:
-                self.retrieve_file(url, file_path)
+                self.retrieve_file(url, file_path + ".part")
             except wpd_exc.DownloadError:
                 LOG.error('DownloadError: %s' % (os.path.basename(url)))
                 continue
@@ -218,6 +218,8 @@ class WPDownloader(object):
                     os.path.basename(url)), 'Retry limit exceeded')
             try:
                 self.retrieve(url, path)
+                new_path = path[:-5]
+                os.rename(path, new_path)
                 break
             except socket.error, s_err:
                 LOG.error('Socket Error: %s' % (s_err))
