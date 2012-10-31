@@ -196,7 +196,7 @@ class WPDownloader(object):
                 continue
 
             try:
-                self.retrieve_file(url, file_path + ".part")
+                self.retrieve_file(url, file_path)
             except wpd_exc.DownloadError:
                 LOG.error('DownloadError: %s' % (os.path.basename(url)))
                 continue
@@ -211,6 +211,8 @@ class WPDownloader(object):
         :type path:     string
         """
         tries = 0
+        orig_path = path
+        path = path + ".part"
 
         while True:
             if tries == self._options.retries:
@@ -218,8 +220,7 @@ class WPDownloader(object):
                     os.path.basename(url)), 'Retry limit exceeded')
             try:
                 self.retrieve(url, path)
-                new_path = path[:-5]
-                os.rename(path, new_path)
+                os.rename(path, orig_path)
                 break
             except socket.error, s_err:
                 LOG.error('Socket Error: %s' % (s_err))
@@ -248,7 +249,7 @@ class WPDownloader(object):
         downloader = PartialDownloader()
         downloader.addheader('Range', 'bytes=%s-' % (offset))
 
-        with nested(open(path, 'wb'), closing(downloader.open(url))) as (
+        with nested(open(path, 'ab'), closing(downloader.open(url))) as (
             local_file, remote_file):
 
             if offset:
@@ -261,6 +262,9 @@ class WPDownloader(object):
                 if not self._options.quiet:
                     pbar = init_progressbar(path, content_length)
                     pbar.start()
+                    if offset:
+                        pbar.update(offset)
+                        read = offset
 
                 for block in iter(lambda: remote_file.read(block_size), ''):
                     local_file.write(block)
